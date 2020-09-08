@@ -51,29 +51,29 @@ DONE
 25: monitoring: memory in/out, chunksizes, wait-times OR idle-times, network-in/network-out for src+dest
 */
 
-
 public final class SQLcp {
 
-    public static void printMainHelp() {
+	public static void printMainHelp() {
 		System.out.println("SQLcp <db2db | db2file | file2db>");
 		System.out.println("  db2db: read from source database, write into target database");
 		System.out.println("  db2file: read from source database, write to target file");
 		System.out.println("  (not yet implemented) file2db: read from source file, write to target database");
-    	System.exit(1);
-    }
+		System.exit(1);
+	}
 
-    public void start(String[] args) throws InterruptedException, SQLException, IOException {
-        if (args.length>=1 && ("db2db".equals(args[0]))) {
-        	new ExportDB2DB().start(args);
-        } else if (args.length>=1 && "db2file".equals(args[0])) {
-        	new ExportDB2File().start(args);
-        } else {
-    		printMainHelp();
-        }
-    }
+	public void start(String[] args) throws InterruptedException, SQLException, IOException {
+		if (args.length >= 1 && ("db2db".equals(args[0]))) {
+			new ExportDB2DB().start(args);
+		} else if (args.length >= 1 && "db2file".equals(args[0])) {
+			new ExportDB2File().start(args);
+		} else {
+			printMainHelp();
+		}
+	}
 
-    public static void main(String[] args) throws Exception {
-        //System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tl:%1$tM:%1$tS.%1$tL (%4$s) [%2$s] %5$s%6$s%n");
-        new SQLcp().start(args);
-    }
+	public static void main(String[] args) throws Exception {
+		// System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF
+		// %1$tl:%1$tM:%1$tS.%1$tL (%4$s) [%2$s] %5$s%6$s%n");
+		new SQLcp().start(args);
+	}
 }

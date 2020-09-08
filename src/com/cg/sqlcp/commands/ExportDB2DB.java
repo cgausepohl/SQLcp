@@ -31,27 +31,33 @@ public class ExportDB2DB {
 	}
 
 	public void start(String[] args) throws SQLException, IOException, InterruptedException {
-		CLIRules rules = new CLIRules("copies the result of a SELECT directly via INSERT: "+SQLcp.class.getName()+" db2db ");
+		CLIRules rules = new CLIRules(
+				"copies the result of a SELECT directly via INSERT: " + SQLcp.class.getName() + " db2db ");
 		rules.addRequired(CLIParams.SRC_JDBC).setDescription("Source: JDBC Connection String");
 		rules.addRequired(CLIParams.SRC_USER).setDescription("Source: Username");
 		rules.addRequired(CLIParams.SRC_PASSWORD).setDescription("Source: Password");
 		rules.addRequired(CLIParams.SRC_DATA).setDescription("Source: Tablename or Select Query");
-		rules.addOptional(CLIParams.SRC_BUFFERED_ROWS, "50000").setDescription(
-				"Source: Maximum number of rows queued to be written to Target");
+		rules.addOptional(CLIParams.SRC_BUFFERED_ROWS, "50000")
+				.setDescription("Source: Maximum number of rows queued to be written to Target");
 
 		rules.addRequired(CLIParams.DEST_DB_JDBC).setDescription("Target: JDBC Connection String");
 		rules.addRequired(CLIParams.DEST_DB_USER).setDescription("Target: Username");
 		rules.addRequired(CLIParams.DEST_DB_PASSWORD).setDescription("Target: Password");
-		rules.addRequired(CLIParams.DEST_DB_TARGET).setDescription("Target: Tablename where the data will be written into");
-		rules.addOptional(CLIParams.DEST_DB_SQL_BEF_IMPORT, "").setDescription("Target: ???create table, truncate, delete of target object");
+		rules.addRequired(CLIParams.DEST_DB_TARGET)
+				.setDescription("Target: Tablename where the data will be written into");
+		rules.addOptional(CLIParams.DEST_DB_SQL_BEF_IMPORT, "")
+				.setDescription("Target: ???create table, truncate, delete of target object");
 		rules.addOptional(CLIParams.DEST_DB_NUM_THREADS, "1").setDescription("Target: number of writing threads");
 		rules.addOptional(CLIParams.DEST_DB_BINDTYPES, "").setDescription("Target: ???");
 
-		rules.addOptional(CLIParams.BATCHSIZE, "5000").setDescription("number of rows that are read or written per chunk");
-		rules.addOptional(CLIParams.GCINTERVALSEC, "0").setDescription("Call the Java Memory Garbage Collector every n Seconds, 0=JVM Managed");
+		rules.addOptional(CLIParams.BATCHSIZE, "5000")
+				.setDescription("number of rows that are read or written per chunk");
+		rules.addOptional(CLIParams.GCINTERVALSEC, "0")
+				.setDescription("Call the Java Memory Garbage Collector every n Seconds, 0=JVM Managed");
 
 		rules.addFlag(CLIParams.PRINTPARAMSONLY, "YES=Print given parameters only, then exit");
-		rules.addOptional(CLIParams.PRINTRUNTIMEINFO, "0").setDescription("Interval of seconds when runtime info will be printed, 0=no stats during execution");
+		rules.addOptional(CLIParams.PRINTRUNTIMEINFO, "0")
+				.setDescription("Interval of seconds when runtime info will be printed, 0=no stats during execution");
 		rules.addFlag(CLIParams.PRINTSUMMARY, "Print statistics and used settings");
 
 		try {
@@ -76,8 +82,9 @@ public class ExportDB2DB {
 		try {
 			// init and start reading thread
 			int batchSize = cliParsed.getIntegerArgument(CLIParams.BATCHSIZE);
-			in = new ThreadReadingFromDB(cliParsed.getArgument(CLIParams.SRC_JDBC), cliParsed.getArgument(CLIParams.SRC_USER),
-					cliParsed.getArgument(CLIParams.SRC_PASSWORD), cliParsed.getArgument(CLIParams.SRC_DATA),
+			in = new ThreadReadingFromDB(cliParsed.getArgument(CLIParams.SRC_JDBC),
+					cliParsed.getArgument(CLIParams.SRC_USER), cliParsed.getArgument(CLIParams.SRC_PASSWORD),
+					cliParsed.getArgument(CLIParams.SRC_DATA),
 					cliParsed.getIntegerArgument(CLIParams.SRC_BUFFERED_ROWS), batchSize, queue);
 			in.start();
 
@@ -100,20 +107,21 @@ public class ExportDB2DB {
 				if (i == 0)
 					outThreads[i] = outInit;
 				else
-					outThreads[i] = new ThreadWritingToDB(in, destJdbc, destUser, destPassword, destTarget, destBindTypes);
+					outThreads[i] = new ThreadWritingToDB(in, destJdbc, destUser, destPassword, destTarget,
+							destBindTypes);
 				outThreads[i].start();
 			}
 
 			// print status or sleep while read/write threads active
 			int gcIntervalSec = cliParsed.getIntegerArgument(CLIParams.GCINTERVALSEC);
 			long lastGC = System.currentTimeMillis();
-			long lastPrintRuntime=0;
+			long lastPrintRuntime = 0;
 			while (atLeastOneNotTerminated(outThreads)) {
-				// runtime-info 
+				// runtime-info
 				int runtimeInfoInterval = cliParsed.getIntegerArgument(CLIParams.PRINTRUNTIMEINFO);
-				if (runtimeInfoInterval>0) {
+				if (runtimeInfoInterval > 0) {
 					long currT = System.currentTimeMillis();
-					if ((currT-lastPrintRuntime)/1000>=runtimeInfoInterval) {
+					if ((currT - lastPrintRuntime) / 1000 >= runtimeInfoInterval) {
 						printStatus(in, outThreads, queue);
 						lastPrintRuntime = System.currentTimeMillis();
 					}
@@ -130,7 +138,7 @@ public class ExportDB2DB {
 						lastGC = System.currentTimeMillis();
 					}
 				}
-				
+
 				Thread.sleep(100);
 			}
 
@@ -181,10 +189,12 @@ public class ExportDB2DB {
 			memPeakM = memUsgM;
 		msg.append("mem=").append(memUsgM.toString()).append("M; ");
 		msg.append("queue=" + Util.getRowCountOfQueue(queue) + "; ");
-		msg.append("T=" + formatMs((System.currentTimeMillis() - t0Start))+"; ");
-		msg.append("in(" + in.getState() + " rcvd=" + in.getTotalRowsReceived() + " dbT=" + formatMs(in.getDBTime()) + "; waitT=" + formatMs(in.getWaitForQueueConsumer())+"); ");
-		msg.append("out*" + outThreads.length + "(" + getStates(outThreads) + " ins=" + getSumTotalRowsInserted(outThreads) + " dbT="
-				+ formatMs(getSumDBTime(outThreads)) + "; waitT=" + formatMs(getSumWaitForQueueProducer(outThreads)) + ")");
+		msg.append("T=" + formatMs((System.currentTimeMillis() - t0Start)) + "; ");
+		msg.append("in(" + in.getState() + " rcvd=" + in.getTotalRowsReceived() + " dbT=" + formatMs(in.getDBTime())
+				+ "; waitT=" + formatMs(in.getWaitForQueueConsumer()) + "); ");
+		msg.append("out*" + outThreads.length + "(" + getStates(outThreads) + " ins="
+				+ getSumTotalRowsInserted(outThreads) + " dbT=" + formatMs(getSumDBTime(outThreads)) + "; waitT="
+				+ formatMs(getSumWaitForQueueProducer(outThreads)) + ")");
 		Util.log(msg.toString());
 	}
 
@@ -193,25 +203,30 @@ public class ExportDB2DB {
 		Util.log("SUMMARY");
 
 		// source : host=?, user=?, data=[[?]]
-		Util.log("source     : host=" + cliParsed.getArgument(CLIParams.SRC_JDBC) + ", user=" + cliParsed.getArgument(CLIParams.SRC_USER)
-				+ ", data=[[" + cliParsed.getArgument(CLIParams.SRC_DATA) + "]]");
+		Util.log("source     : host=" + cliParsed.getArgument(CLIParams.SRC_JDBC) + ", user="
+				+ cliParsed.getArgument(CLIParams.SRC_USER) + ", data=[[" + cliParsed.getArgument(CLIParams.SRC_DATA)
+				+ "]]");
 		// destination: host=?, user=?, data=[[?]]
-		Util.log("destination: host=" + cliParsed.getArgument(CLIParams.DEST_DB_JDBC) + ", user=" + cliParsed.getArgument(CLIParams.DEST_DB_USER)
-				+ ", target=" + cliParsed.getArgument(CLIParams.DEST_DB_TARGET));
+		Util.log("destination: host=" + cliParsed.getArgument(CLIParams.DEST_DB_JDBC) + ", user="
+				+ cliParsed.getArgument(CLIParams.DEST_DB_USER) + ", target="
+				+ cliParsed.getArgument(CLIParams.DEST_DB_TARGET));
 
-		// readProc   : init=6611ms, wait=8167ms, fetch=121ms, 2831rows/sec, 19059rows fetched
-		Util.log("readProc   : init=" + formatMs(in.getInitTime())+", wait="+formatMs(in.getWaitForQueueConsumer())+", "
-				+ "fetch=" + formatMs(in.getDBTime())+", "
-				+ getRowsPerSec(in.getTotalRowsReceived(), in.getDBTime()+in.getInitTime()) + "rows/sec, "
+		// readProc : init=6611ms, wait=8167ms, fetch=121ms, 2831rows/sec, 19059rows
+		// fetched
+		Util.log("readProc   : init=" + formatMs(in.getInitTime()) + ", wait=" + formatMs(in.getWaitForQueueConsumer())
+				+ ", " + "fetch=" + formatMs(in.getDBTime()) + ", "
+				+ getRowsPerSec(in.getTotalRowsReceived(), in.getDBTime() + in.getInitTime()) + "rows/sec, "
 				+ in.getTotalRowsReceived() + "rows fetched");
-		// writeProc  : init=14695ms, wait=107ms, threads=8, insert=53936ms, 167rows/sec, 96*ps.executeBatch()/commit, 19059rows inserted
+		// writeProc : init=14695ms, wait=107ms, threads=8, insert=53936ms, 167rows/sec,
+		// 96*ps.executeBatch()/commit, 19059rows inserted
 		long getSumDBTime_ = getSumDBTime(outThreads);
-		Util.log("writeProc  : init=" + formatMs(getSumInitTime(outThreads)) + ", wait="+formatMs(getSumWaitForQueueProducer(outThreads))+", "
-				+ "threads=" + outThreads.length + ", insert=" + formatMs(getSumDBTime(outThreads)) + ", "
-				+ getRowsPerSec(tInsertAll, getSumDBTime_) + "rows/sec, " 
+		Util.log("writeProc  : init=" + formatMs(getSumInitTime(outThreads)) + ", wait="
+				+ formatMs(getSumWaitForQueueProducer(outThreads)) + ", " + "threads=" + outThreads.length + ", insert="
+				+ formatMs(getSumDBTime(outThreads)) + ", " + getRowsPerSec(tInsertAll, getSumDBTime_) + "rows/sec, "
 				+ getSumTotalBatchedInserts(outThreads) + "*ps.executeBatch()/commit, "
 				+ getSumTotalRowsInserted(outThreads) + "rows inserted");
-		// summary    : execTime=18839ms, rows=?, (rows/sec)=?memPeak=53M, outThreads=8, rows=20447, (rows/sec)=1135
+		// summary : execTime=18839ms, rows=?, (rows/sec)=?memPeak=53M, outThreads=8,
+		// rows=20447, (rows/sec)=1135
 		long overallMs = System.currentTimeMillis() - t0Start;
 		StringBuffer sb = new StringBuffer(100);
 		sb.append("summary    : execTime=" + formatMs(overallMs));
@@ -223,21 +238,23 @@ public class ExportDB2DB {
 		sb.append(", (rows/sec)=" + getRowsPerSec(in.getTotalRowsReceived(), overallMs));
 		Util.log(sb.toString());
 	}
-	
+
 	private String formatMs(long ms) {
 		// stay ms under 10sec
-		if (ms<10000) return ""+ms+"ms";
+		if (ms < 10000)
+			return "" + ms + "ms";
 		// switch to sec
-		long s=ms/1000;
-		if (s<3600) return ""+s+"sec";
-		long mi=s/60;
-		return ""+mi+"m";
+		long s = ms / 1000;
+		if (s < 3600)
+			return "" + s + "sec";
+		long mi = s / 60;
+		return "" + mi + "m";
 	}
 
 	private long getRowsPerSec(long tInsertAll, long getSumDBTime_) {
-		if (getSumDBTime_/1000==0)
+		if (getSumDBTime_ / 1000 == 0)
 			return -1;
-		return (long)((double) tInsertAll / (getSumDBTime_/1000));
+		return (long) ((double) tInsertAll / (getSumDBTime_ / 1000));
 	}
 
 	private long getSumDBTime(ThreadWritingToDB[] outThreads) {

@@ -16,18 +16,18 @@ import com.cg.sqlutil.SQLUtilInterface;
 public class ThreadReadingFromDB extends Thread {
 
 	private SQLUtilInterface sql = null;
-    private LinkedTransferQueue<Row[]> queue;
-    private int maxQueueSize;
-    private String selectStmt;
-    private int rowsTotalRead = 0;
-    private int fetchesExecuted = 0;
-    private long tDBTime=0;
-	private long tWaitForQueueConsumer=0;
+	private LinkedTransferQueue<Row[]> queue;
+	private int maxQueueSize;
+	private String selectStmt;
+	private int rowsTotalRead = 0;
+	private int fetchesExecuted = 0;
+	private long tDBTime = 0;
+	private long tWaitForQueueConsumer = 0;
 	private boolean isTerminated = false;
 	private long tInitTime = 0;
 
-	public ThreadReadingFromDB(String jdbc, String user, String password, String queryData, int maxQueueSize, int batchSize,
-			LinkedTransferQueue<Row[]> queue) throws SQLException, IOException {
+	public ThreadReadingFromDB(String jdbc, String user, String password, String queryData, int maxQueueSize,
+			int batchSize, LinkedTransferQueue<Row[]> queue) throws SQLException, IOException {
 		this.queue = queue;
 		this.maxQueueSize = maxQueueSize;
 		try {
@@ -35,7 +35,8 @@ public class ThreadReadingFromDB extends Thread {
 			try {
 				sql = SQLUtilFactory.createSQLUtil(jdbc, user, password);
 			} catch (SQLException sqle) {
-				System.err.println("Cannot establish connection to source. jdbc="+jdbc+" user="+user+" len(password)="+(password==null?0:password.length()));
+				System.err.println("Cannot establish connection to source. jdbc=" + jdbc + " user=" + user
+						+ " len(password)=" + (password == null ? 0 : password.length()));
 				throw sqle;
 			}
 			sql.getConnection().setReadOnly(true);
@@ -45,11 +46,11 @@ public class ThreadReadingFromDB extends Thread {
 			if ("SQL".equals(srcType))
 				selectStmt = queryData;
 			else
-				selectStmt = "SELECT * FROM "+queryData;
+				selectStmt = "SELECT * FROM " + queryData;
 
-        	// First chunk: get metadata
-        	sql.getChunksPrepare(selectStmt, batchSize);
-        	tInitTime = System.currentTimeMillis() - t0;
+			// First chunk: get metadata
+			sql.getChunksPrepare(selectStmt, batchSize);
+			tInitTime = System.currentTimeMillis() - t0;
 		} catch (SQLException e) {
 			cleanUpAfterRun();
 			throw e;
@@ -66,46 +67,50 @@ public class ThreadReadingFromDB extends Thread {
 	}
 
 	public synchronized void terminate() {
-    	isTerminated = true;
+		isTerminated = true;
 	}
 
 	@Override
-    public void run() {
+	public void run() {
 		long t0;
-        try {
-    		Row[] rows = null;
-        	while (true) {
-        		t0 = System.currentTimeMillis();
-        		rows=sql.getChunksGetNextRows();
-        		tDBTime += System.currentTimeMillis() - t0;
-        		if (rows==null) break;
-        		fetchesExecuted++;
-        		rowsTotalRead += rows.length;
-            	if (isTerminated) return;
-        		queue.add(rows);
-                while (Util.getRowCountOfQueue(queue) >= maxQueueSize) {
-                	if (isTerminated) return;
-                	t0 = System.currentTimeMillis();
-                    Thread.sleep(50);
-                    tWaitForQueueConsumer += System.currentTimeMillis()-t0;
-                }
-        	}
-            while (queue.size() > 0) {
-            	if (isTerminated) return;
-            	t0 = System.currentTimeMillis();
-                Thread.sleep(50);
-                tWaitForQueueConsumer += System.currentTimeMillis()-t0;
-            }
-        } catch (Throwable t) {
+		try {
+			Row[] rows = null;
+			while (true) {
+				t0 = System.currentTimeMillis();
+				rows = sql.getChunksGetNextRows();
+				tDBTime += System.currentTimeMillis() - t0;
+				if (rows == null)
+					break;
+				fetchesExecuted++;
+				rowsTotalRead += rows.length;
+				if (isTerminated)
+					return;
+				queue.add(rows);
+				while (Util.getRowCountOfQueue(queue) >= maxQueueSize) {
+					if (isTerminated)
+						return;
+					t0 = System.currentTimeMillis();
+					Thread.sleep(50);
+					tWaitForQueueConsumer += System.currentTimeMillis() - t0;
+				}
+			}
+			while (queue.size() > 0) {
+				if (isTerminated)
+					return;
+				t0 = System.currentTimeMillis();
+				Thread.sleep(50);
+				tWaitForQueueConsumer += System.currentTimeMillis() - t0;
+			}
+		} catch (Throwable t) {
 			throw new RuntimeException(t);
-        } finally {
-        	try {
-        		sql.getChunksClose();
-        	} finally {
-        		cleanUpAfterRun();
-        	}
-        }
-    }
+		} finally {
+			try {
+				sql.getChunksClose();
+			} finally {
+				cleanUpAfterRun();
+			}
+		}
+	}
 
 	public Integer getMaxQueueSize() {
 		return maxQueueSize;
@@ -126,7 +131,7 @@ public class ThreadReadingFromDB extends Thread {
 	public synchronized int getColumnCount() throws SQLException {
 		return sql.getPreviousMetaData().getColumnCount();
 	}
-	
+
 	public synchronized String getColumnName(int idx) throws SQLException {
 		return sql.getPreviousMetaData().getColumnName(idx);
 	}
